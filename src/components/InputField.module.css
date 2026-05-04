@@ -1,0 +1,48 @@
+.field { margin-bottom: 20px; }
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--label);
+  margin-bottom: 8px;
+}
+
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--placeholder);
+  width: 20px;
+  height: 20px;
+}
+
+.icon svg { width: 20px; height: 20px; }
+
+.input {
+  width: 100%;
+  padding: 14px 14px 14px 46px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  color: var(--brown-dark);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input::placeholder { color: var(--placeholder); font-size: 14px; }
+
+.input:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(200,168,0,0.15);
+}

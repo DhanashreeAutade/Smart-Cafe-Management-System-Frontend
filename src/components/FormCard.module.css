@@ -1,0 +1,64 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--brown-mid);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  background: none;
+  border: none;
+  margin-bottom: 20px;
+  transition: color 0.2s;
+  align-self: flex-start;
+  max-width: 560px;
+  width: 100%;
+}
+.back:hover { color: var(--brown-dark); }
+
+.card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border);
+  border-radius: 20px;
+  padding: 40px 40px 36px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow: 0 4px 24px rgba(180,140,60,0.1);
+  animation: slideUp 0.35s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--brown-dark);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--subtext);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 600px) {
+  .card { padding: 28px 20px; }
+  .title { font-size: 24px; }
+}

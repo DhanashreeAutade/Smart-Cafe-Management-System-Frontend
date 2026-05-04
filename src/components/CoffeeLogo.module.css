@@ -1,0 +1,35 @@
+.circle {
+  background: radial-gradient(circle at 35% 35%, #6B3015, #3D1A00);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.large {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 28px;
+  box-shadow:
+    0 0 0 6px rgba(212,168,0,0.25),
+    0 0 0 12px rgba(212,168,0,0.08),
+    0 8px 32px rgba(44,18,0,0.3);
+  animation: float 3s ease-in-out infinite;
+}
+
+.small {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
+  box-shadow:
+    0 0 0 4px rgba(212,168,0,0.22),
+    0 0 0 8px rgba(212,168,0,0.07),
+    0 4px 18px rgba(44,18,0,0.25);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
