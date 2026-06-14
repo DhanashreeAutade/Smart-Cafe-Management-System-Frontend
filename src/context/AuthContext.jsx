@@ -6,16 +6,24 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   //  RESTORE USER AFTER REFRESH
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setCurrentUser(user);
-      setIsAdmin(user.roleName === "admin");
+      try {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+        setIsAdmin(user.roleName === "admin");
+      } catch (error) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     }
+
+    setAuthLoading(false);
   }, []);
 
   // REGISTER 
@@ -63,6 +71,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       currentUser,
       isAdmin,
+      authLoading,
       login,
       register,
       logout

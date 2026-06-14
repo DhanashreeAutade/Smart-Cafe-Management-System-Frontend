@@ -13,13 +13,15 @@ import AdminResetPassword from './pages/AdminResetPassword';
 import ResetPassword from './pages/ResetPassword';
 
 function ProtectedMenu() {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, isAdmin, authLoading } = useAuth();
+  if (authLoading) return null;
   if (!currentUser || isAdmin) return <Navigate to="/" replace />;
   return <Menu />;
 }
 
 function ProtectedAdmin() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, authLoading } = useAuth();
+  if (authLoading) return null;
   if (!isAdmin) return <Navigate to="/" replace />;
   return <AdminDashboard />;
 }

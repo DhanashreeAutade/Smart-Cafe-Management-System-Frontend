@@ -1,34 +1,221 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { getCategories, getProducts, createProduct, createCategory as createCategoryApi, updateCategory as updateCategoryApi, deleteCategory as deleteCategoryApi } from '../services/api';
 
 const MenuContext = createContext(null);
 
-const DEFAULT_ITEMS = [
-  { id:1,  name:'Signature Espresso',    category:'Hot Coffee',      price:180, emoji:'☕', description:'Our house espresso blend — dark roast with notes of dark chocolate and hazelnut. Bold, smooth, unforgettable.', tags:['Hot','Popular','Bestseller'], featured:true },
-  { id:2,  name:'Caramel Cloud Latte',   category:'Hot Coffee',      price:260, emoji:'🍮', description:'Velvety steamed milk with two shots of espresso and our house caramel drizzle. A café classic.',             tags:['Hot','Sweet'],               featured:false },
-  { id:3,  name:'Oat Milk Flat White',   category:'Hot Coffee',      price:280, emoji:'🥛', description:'Perfectly microfoamed oat milk over a ristretto shot. Creamy, nutty, and plant-based.',                      tags:['Hot','Vegan'],               featured:false },
-  { id:4,  name:'Japanese Iced Coffee',  category:'Cold Coffee',     price:240, emoji:'🧊', description:'Brewed hot directly over ice — full flavour with none of the bitterness.',                                    tags:['Cold','Popular'],            featured:true },
-  { id:5,  name:'Dalgona Whip',          category:'Cold Coffee',     price:290, emoji:'🫙', description:'Whipped coffee cloud atop cold milk. Creamy, fluffy, and deeply caffeinating.',                               tags:['Cold','Sweet'],              featured:false },
-  { id:6,  name:'Cold Brew Tonic',       category:'Cold Coffee',     price:320, emoji:'🥤', description:'18-hour cold brew over tonic water with a slice of orange. Effervescent and refreshing.',                    tags:['Cold','Premium'],            featured:false },
-  { id:7,  name:'Chamomile Honey',       category:'Tea & Infusions', price:160, emoji:'🌼', description:'Organic chamomile with raw forest honey and a sliver of ginger. Calming and aromatic.',                      tags:['Herbal','Caffeine-free'],    featured:false },
-  { id:8,  name:'Masala Chai',           category:'Tea & Infusions', price:140, emoji:'🫖', description:'Traditional spiced chai — cardamom, cinnamon, clove and ginger — made with full-cream milk.',                tags:['Spiced','Popular'],          featured:false },
-  { id:9,  name:'Butter Croissant',      category:'Bakery',          price:160, emoji:'🥐', description:'Flaky, buttery, and laminated in-house every morning. Best enjoyed warm.',                                    tags:['Baked','Fresh'],             featured:false },
-  { id:10, name:'Blueberry Scone',       category:'Bakery',          price:180, emoji:'🫐', description:'Scottish-style scone loaded with wild blueberries and a crunchy sugar glaze.',                                tags:['Baked','Sweet'],             featured:false },
-  { id:11, name:'Avocado Toast',         category:'Snacks',          price:320, emoji:'🥑', description:'Sourdough toast with smashed avocado, cherry tomatoes, chilli flakes, and a soft-poached egg.',              tags:['Savoury','Fresh'],           featured:true },
-  { id:12, name:'Banana Nutella Smoothie',category:'Smoothies',      price:270, emoji:'🍌', description:'Thick blend of frozen banana, oat milk, Nutella and cocoa nibs.',                                             tags:['Cold','Sweet','Filling'],    featured:false },
-];
+const normalizeCategory = (c) => {
+  if (!c) return null;
+  if (typeof c === 'string') {
+    return { _id: c, name: c };
+  }
+  if (typeof c === 'object') {
+    const id = c._id || c.id || c.name || c.category || c.categoryId || c.categoryName || '';
+    const name = c.name || c.category || c.categoryName || c._id || c.id || c.categoryId || '';
+    if (!id && !name) return null;
+    return { _id: id, name };
+  }
+  return null;
+};
+
+const extractCategoriesFromItems = (itemsList) => {
+  const list = (itemsList || []).map((item) => {
+    if (!item) return null;
+    if (typeof item.category === 'string') {
+      return { _id: item.category, name: item.category };
+    }
+    if (item.category && typeof item.category === 'object') {
+      const id = item.category._id || item.category.id || item.category.name || item.category.category || '';
+      const name = item.category.name || item.category.category || item.category._id || item.category.id || '';
+      if (!id && !name) return null;
+      return { _id: id, name };
+    }
+    if (typeof item.categoryName === 'string' && item.categoryName) {
+      return { _id: item.categoryName, name: item.categoryName };
+    }
+    if (typeof item.categoryId === 'string' && item.categoryId) {
+      return { _id: item.categoryId, name: item.categoryId };
+    }
+    return null;
+  }).filter(Boolean);
+
+  return [{ _id: 'All', name: 'All' }, ...list.reduce((acc, category) => {
+    if (!acc.some(c => c._id === category._id && c.name === category.name)) {
+      acc.push(category);
+    }
+    return acc;
+  }, [])];
+};
 
 export function MenuProvider({ children }) {
-  const [items, setItems] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tdg_menu') || 'null') || DEFAULT_ITEMS; } catch { return DEFAULT_ITEMS; }
-  });
+  // Start with an empty array instead of default items
+  const { currentUser, authLoading } = useAuth();
+  const token = localStorage.getItem('token');
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([{ _id: 'All', name: 'All' }]);
 
-  const saveItems = (updated) => { setItems(updated); localStorage.setItem('tdg_menu', JSON.stringify(updated)); };
-  const addItem = (item) => { const newItem = { ...item, id: Date.now(), featured: false }; saveItems([...items, newItem]); };
-  const deleteItem = (id) => saveItems(items.filter(i => i.id !== id));
-  const categories = ['All', ...new Set(items.map(i => i.category))];
+  const loadCategories = async (fallbackItems = []) => {
+    try {
+      const data = await getCategories();
+
+      const rawList = Array.isArray(data) ? data : data?.categories || data?.items || data?.data || [];
+      const list = (Array.isArray(rawList) ? rawList : []).map(normalizeCategory).filter(Boolean);
+
+      const unique = list.reduce((acc, category) => {
+        if (!acc.some(c => c._id === category._id && c.name === category.name)) {
+          acc.push(category);
+        }
+        return acc;
+      }, []);
+
+      if (unique.length) {
+        setCategories([{ _id: 'All', name: 'All' }, ...unique]);
+      } else {
+        setCategories(extractCategoriesFromItems(fallbackItems));
+      }
+    } catch (err) {
+      console.error("Category fetch error:", err);
+      setCategories(extractCategoriesFromItems(fallbackItems));
+    }
+  };
+
+  useEffect(() => {
+    if (authLoading || !currentUser || !token) return;
+
+    const fetchProducts = async () => {
+      try {
+        const data = await getProducts();
+        const products = Array.isArray(data) ? data : [];
+        const normalizedProducts = products.map((product) => {
+          if (!product || typeof product !== 'object') return null;
+          return {
+            _id: product._id || product.id || '',
+            id: product._id || product.id || '',
+            name: product.name || product.title || product.productName || '',
+            price: product.price || product.cost || product.amount || 0,
+            description: product.description || product.desc || '',
+            category: product.category || product.categoryId || product.categoryName || '',
+            image: product.image || product.imageUrl || product.photo || '',
+            emoji: product.emoji || '☕',
+            tags: Array.isArray(product.tags) ? product.tags : typeof product.tags === 'string' ? product.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+            featured: !!product.featured
+          };
+        }).filter(Boolean);
+        setItems(normalizedProducts);
+        await loadCategories(normalizedProducts);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchProducts();
+  }, [authLoading, currentUser]);
+
+  useEffect(() => {
+    if (items.length > 0 && categories.length === 1) {
+      setCategories(extractCategoriesFromItems(items));
+    }
+  }, [items, categories.length]);
+
+
+  // Add new item with autogenerated id and default featured value
+  // Supports image URL or uploaded image path via item.image
+  const parseProductResponse = (res) => {
+    if (!res) return null;
+    if (res.product && typeof res.product === 'object') return res.product;
+    if (res.createdProduct && typeof res.createdProduct === 'object') return res.createdProduct;
+    if (res.data && typeof res.data === 'object') return res.data;
+    if (res.name && res.price) return res;
+    return null;
+  };
+
+  const addItem = async (item) => {
+    try {
+      const res = await createProduct(item);
+      console.log("Create Product Response:", res);
+
+      const product = parseProductResponse(res);
+      if (product) {
+        setItems(prev => [...prev, product]);
+        return product;
+      }
+
+      // Fallback: refresh full product list if server created the item but response shape is unexpected
+      const refreshed = await getProducts();
+      setItems(Array.isArray(refreshed) ? refreshed : refreshed.products || []);
+      return res;
+    } catch (err) {
+      console.error("Create product error:", err);
+      return null;
+    }
+  };
+
+  const parseCategoryResponse = (res) => {
+    if (!res) return null;
+    if (res.category && typeof res.category === 'object') return res.category;
+    if (res.data && typeof res.data === 'object') return res.data;
+    if (res.name) return res;
+    return null;
+  };
+
+  const createCategory = async (category) => {
+    try {
+      const res = await createCategoryApi(category);
+      const created = parseCategoryResponse(res);
+      if (created) {
+        await loadCategories();
+        return created;
+      }
+
+      await loadCategories();
+      return res;
+    } catch (err) {
+      console.error("Create category error:", err);
+      return null;
+    }
+  };
+
+  const updateCategory = async (id, category) => {
+    try {
+      const res = await updateCategoryApi(id, category);
+      const updated = parseCategoryResponse(res);
+      if (updated) {
+        await loadCategories();
+        return updated;
+      }
+
+      await loadCategories();
+      return res;
+    } catch (err) {
+      console.error("Update category error:", err);
+      return null;
+    }
+  };
+
+  const deleteCategory = async (id) => {
+    const res = await deleteCategoryApi(id);
+    await loadCategories();
+    return res;
+  };
+
+  // Delete item by id
+  const deleteItem = (id) => {
+    setItems(prev => prev.filter((i) => i._id !== id && i.id !== id));
+  };
+
 
   return (
-    <MenuContext.Provider value={{ items, addItem, deleteItem, categories }}>
+    <MenuContext.Provider
+      value={{
+        items,
+        addItem,
+        deleteItem,
+        categories,
+        createCategory,
+        updateCategory,
+        deleteCategory
+      }}
+    >
       {children}
     </MenuContext.Provider>
   );
