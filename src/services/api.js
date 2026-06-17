@@ -1,5 +1,13 @@
 export const API = "http://localhost:6100";
 
+const safeJson = async (res) => {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+};
+
 const buildHeaders = (isForm = false) => {
   const token = localStorage.getItem("token");
   const headers = {};
@@ -71,7 +79,7 @@ export const loginUser = async (email, password) => {
     body: JSON.stringify({ email, password })
   });
 
-  return res.json();
+  return safeJson(res);
 };
 
 //  REGISTER
@@ -217,3 +225,81 @@ export async function getProducts() {
 
   return normalizeApiList(payload, ['products', 'items', 'data', 'docs', 'categories', 'product'], isProductArray);
 }
+
+export const createOrder = async (order) => {
+  const res = await fetch(`${API}/orders/create`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify(order)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to create order');
+  }
+  return data.order || data;
+};
+
+export const getTodayOrders = async () => {
+  const res = await fetch(`${API}/orders/today/list`, {
+    method: 'GET',
+    headers: buildHeaders()
+  });
+  const data = await safeJson(res);
+  if (!res.ok) {
+    const detail = data?.error || data?.message || 'Failed to fetch today orders';
+    throw new Error(`[${res.status}] ${detail}`);
+  }
+  return Array.isArray(data.orders) ? data.orders : [];
+};
+
+export const getMyOrders = async () => {
+  const res = await fetch(`${API}/orders/all?userId=me`, {
+    method: 'GET',
+    headers: buildHeaders()
+  });
+  const data = await safeJson(res);
+  if (!res.ok) {
+    const detail = data?.error || data?.message || 'Failed to fetch your orders';
+    throw new Error(`[${res.status}] ${detail}`);
+  }
+  return Array.isArray(data.orders) ? data.orders : [];
+};
+
+export const updateOrderStatus = async (orderId, status) => {
+  const res = await fetch(`${API}/orders/status`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify({ orderId, status: String(status).toLowerCase() })
+  });
+  const data = await safeJson(res);
+  if (!res.ok) {
+    const detail = data?.error || data?.message || 'Failed to update order status';
+    throw new Error(`[${res.status}] ${detail}`);
+  }
+  return data.order || null;
+};
+
+export const getSettings = async () => {
+  const res = await fetch(`${API}/settings/getsettings`, {
+    method: 'GET',
+    headers: buildHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch settings');
+  }
+  return data.settings || data;
+};
+
+export const updateSettings = async (settings) => {
+  const res = await fetch(`${API}/settings/updatesettings`, {
+    method: 'PUT',
+    headers: buildHeaders(),
+    body: JSON.stringify(settings)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to update settings');
+  }
+  return data.settings || data;
+};

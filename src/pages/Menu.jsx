@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMenu } from '../context/MenuContext';
 import { useCart } from '../context/CartContext';
 import LogoCircle from '../components/LogoCircle';
-import Toast from '../components/Toast';
-import { API } from '../services/api';
+import { toast } from 'react-toastify';
+import { API, createOrder, getSettings } from '../services/api';
 
 const getImageUrl = (image) => {
   if (!image) return '';
@@ -81,14 +81,79 @@ function ItemModal({ item, onClose, onAdd }) {
 }
 
 function CartModal({ onClose }) {
+  const { currentUser } = useAuth();
   const { cart, removeFromCart, clearCart, totalPrice } = useCart();
   const [ordered, setOrdered] = useState(false);
+  const [orderResult, setOrderResult] = useState(null);
+  const [submitError, setSubmitError] = useState('');
+  const [placing, setPlacing] = useState(false);
+  const [tableNumber, setTableNumber] = useState('');
+  const [maxTables, setMaxTables] = useState(10);
+
+  useEffect(() => {
+    let mounted = true;
+    getSettings()
+      .then((s) => {
+        const next = parseInt(s?.maxTables, 10);
+        if (mounted && !Number.isNaN(next) && next > 0) setMaxTables(next);
+      })
+      .catch(() => {
+        // keep default
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const handlePlaceOrder = async () => {
+    if (!cart.length) {
+      setSubmitError('Your order is empty.');
+      return;
+    }
+
+    const tableNum = parseInt(String(tableNumber).trim(), 10);
+    if (!tableNumber || Number.isNaN(tableNum) || tableNum < 1 || tableNum > maxTables) {
+      setSubmitError('Enter the valid table number');
+      return;
+    }
+
+    setSubmitError('');
+    setPlacing(true);
+
+    try {
+      const payload = {
+        items: cart.map((item) => ({
+          productId: item.id || item._id || item.productId || item.itemId,
+          productName: item.name,
+          price: item.price,
+          quantity: item.qty,
+        })),
+        totalAmount: totalPrice,
+        table: String(tableNum),
+      };
+
+      const result = await createOrder(payload);
+      setOrderResult(result);
+      setOrdered(true);
+      clearCart();
+    } catch (err) {
+      setSubmitError(err?.message || 'Failed to place order.');
+      console.error('Order placement failed:', err);
+    } finally {
+      setPlacing(false);
+    }
+  };
+
   if (ordered) return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,15,10,0.55)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#FEFCE8', borderRadius: 20, padding: 40, maxWidth: 400, width: '100%', textAlign: 'center' }}>
+      <div style={{ background: '#FEFCE8', borderRadius: 20, padding: 40, maxWidth: 420, width: '100%', textAlign: 'center' }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-        <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#2C1200', marginBottom: 8 }}>Order Placed!</h2>
-        <p style={{ color: '#6B7280', marginBottom: 24 }}>Your order is being prepared. Ready in 8–12 mins.</p>
+        <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#2C1200', marginBottom: 8 }}>Order Placed Successfully</h2>
+        <p style={{ color: '#6B7280', marginBottom: 20 }}>Thank you for ordering. Your order is now in the kitchen queue.</p>
+        <div style={{ textAlign: 'left', marginBottom: 20, color: '#2C1200' }}>
+          <div style={{ marginBottom: 8 }}><strong>Order Number:</strong> {orderResult?.orderNumber || orderResult?.id || orderResult?._id || 'N/A'}</div>
+          <div style={{ marginBottom: 8 }}><strong>Table Number:</strong> {orderResult?.table || '—'}</div>
+          <div style={{ marginBottom: 8 }}><strong>Total Amount:</strong> ₹{orderResult?.totalAmount ?? orderResult?.total ?? totalPrice}</div>
+          <div><strong>Status:</strong> {orderResult?.status ? String(orderResult.status).charAt(0).toUpperCase() + String(orderResult.status).slice(1) : 'Pending'}</div>
+        </div>
         <button onClick={onClose} style={{ padding: '12px 32px', background: 'linear-gradient(135deg,#8B3A00,#2C1200)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Back to Menu</button>
       </div>
     </div>
@@ -98,6 +163,20 @@ function CartModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', padding: '1.5rem', position: 'relative' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', background: '#F0EDE9', border: 'none', cursor: 'pointer', fontSize: 16, color: '#6B7280' }}>✕</button>
         <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, color: '#2C1200', marginBottom: 20 }}>Your Order</h2>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#6B7280', marginBottom: 6 }}>
+            Table Number (1–{maxTables})
+          </label>
+          <input
+            value={tableNumber}
+            onChange={(e) => setTableNumber(e.target.value)}
+            type="number"
+            min={1}
+            max={maxTables}
+            placeholder="Enter your table number"
+            style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #E8E0D5', borderRadius: 10, fontSize: 14, background: '#FAF6EC', color: '#2C1200', outline: 'none' }}
+          />
+        </div>
         {cart.length === 0 ? <p style={{ color: '#9CA3AF', textAlign: 'center', padding: '2rem 0' }}>Your order is empty.</p> :
           cart.map(item => (
             <div key={item._id || item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid #F0EDE9' }}>
@@ -126,8 +205,13 @@ function CartModal({ onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, fontFamily: "'Playfair Display',serif", fontSize: 20 }}>
           <span>Total</span><span>₹{totalPrice}</span>
         </div>
-        <button onClick={() => { clearCart(); setOrdered(true); }} style={{ width: '100%', marginTop: 16, padding: 16, background: 'linear-gradient(135deg,#8B3A00,#2C1200)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
-          Place Order ✦
+        {submitError && (
+          <div style={{ marginTop: 10, color: '#EF4444', fontSize: 13, fontWeight: 600 }}>
+            {submitError}
+          </div>
+        )}
+        <button onClick={handlePlaceOrder} disabled={placing} style={{ width: '100%', marginTop: 16, padding: 16, background: 'linear-gradient(135deg,#8B3A00,#2C1200)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer', opacity: placing ? 0.7 : 1 }}>
+          {placing ? 'Placing order…' : 'Place Order ✦'}
         </button>
       </div>
     </div>
@@ -203,6 +287,7 @@ export default function Menu() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: 'rgba(253,248,243,0.6)', fontSize: 14 }}>{currentUser?.name}</span>
+          <button onClick={() => nav('/my-orders')} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#E8E0D5', borderRadius: 8, padding: '8px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>My Orders</button>
           <button onClick={() => { logout(); nav('/'); }} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#E8E0D5', borderRadius: 8, padding: '8px 16px', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Sign Out</button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import FormCard from '../components/FormCard';
@@ -10,10 +10,15 @@ import BackLink from '../components/BackLink';
 export default function AdminLogin() {
     const nav = useNavigate();
     const { login, isAdmin } = useAuth();
-    const [email, setEmail] = useState('admin@cafe.com');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+    useEffect(() => {
+        setEmail('');
+        setPassword('');
+        setError('');
+    }, []);
 
     const handleSubmit = async () => {
         setError('');
@@ -36,8 +41,8 @@ export default function AdminLogin() {
             <BackLink onClick={() => nav('/')} />
             <FormCard title="Admin Portal" subtitle="Manage your cafe">
                 <ErrorBox message={error} />
-                <FormField label="Email" icon="email" placeholder="admin@cafe.com" value={email} onChange={setEmail} type="email" autoComplete="email" />
-                <FormField label="Password" icon="password" placeholder="••••••••" value={password} onChange={setPassword} type="password" autoComplete="current-password" />
+                <FormField label="Email" icon="email" placeholder="admin@cafe.com" value={email} onChange={setEmail} type="email" autoComplete="off" />
+                <FormField label="Password" icon="password" placeholder="••••••••" value={password} onChange={setPassword} type="password" autoComplete="new-password" />
                 <SubmitButton onClick={handleSubmit}>Access Admin Panel</SubmitButton>
             </FormCard>
         </div>

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMenu } from '../context/MenuContext';
 import LogoCircle from '../components/LogoCircle';
-import Toast from '../components/Toast';
-import { getUsers, deleteUserApi, deleteProduct, API as API_BASE } from '../services/api';
+import { toast } from 'react-toastify';
+import { getUsers, deleteUserApi, deleteProduct, API as API_BASE, getSettings, updateSettings } from '../services/api';
 
 
 function StatCard({ icon, value, label }) {
@@ -29,6 +29,8 @@ export default function AdminDashboard() {
   const [categoryForm, setCategoryForm] = useState({ name: '' });
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [users, setUsers] = useState([]);
+  const [maxTables, setMaxTables] = useState(10);
+  const [maxTablesInput, setMaxTablesInput] = useState('10');
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -41,6 +43,20 @@ export default function AdminDashboard() {
     };
 
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    getSettings()
+      .then((s) => {
+        const next = parseInt(s?.maxTables, 10);
+        if (!Number.isNaN(next) && next > 0) {
+          setMaxTables(next);
+          setMaxTablesInput(String(next));
+        }
+      })
+      .catch(() => {
+        // keep defaults
+      });
   }, []);
 
 
@@ -200,6 +216,7 @@ export default function AdminDashboard() {
     { id: 'customers', label: 'Customers', icon: '◉' },
     { id: 'products', label: 'Products', icon: '◈' },
     { id: 'categories', label: 'Categories', icon: '🗂' },
+    { id: 'settings', label: 'Settings', icon: '⚙' },
   ];
 
   const inputStyle = { width: '100%', padding: '9px 12px', border: '1.5px solid #E2D08A', borderRadius: 8, fontSize: 14, background: '#FAF6EC', color: '#2C1200', outline: 'none', fontFamily: "'Nunito',sans-serif" };
@@ -237,6 +254,16 @@ export default function AdminDashboard() {
               <span>{n.icon}</span>{n.label}
             </button>
           ))}
+          <button onClick={() => nav('/admin/orders')} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            marginTop: 8, fontSize: 14, fontWeight: 500, textAlign: 'left', transition: 'all 0.18s',
+            background: 'transparent', color: 'rgba(253,248,243,0.65)',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <span>📋</span>Live Orders
+          </button>
         </div>
 
         {/* Main */}
@@ -546,6 +573,50 @@ export default function AdminDashboard() {
                 )) : (
                   <div style={{ padding: '1.5rem', color: '#9CA3AF', fontSize: 14 }}>No categories found.</div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* SETTINGS */}
+          {tab === 'settings' && (
+            <div>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#2C1200', marginBottom: 6 }}>Settings</h2>
+              <p style={{ color: '#9CA3AF', fontSize: 14, marginBottom: 20 }}>Configure table numbers for dine-in orders.</p>
+
+              <div style={{ background: '#fff', border: '1px solid #E8E0D5', borderRadius: 12, padding: '1.5rem', maxWidth: 560 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'end' }}>
+                  <div>
+                    <label style={labelStyle}>Maximum Tables</label>
+                    <input
+                      style={inputStyle}
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={maxTablesInput}
+                      onChange={(e) => setMaxTablesInput(e.target.value)}
+                      placeholder="10"
+                    />
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6 }}>
+                      Customers can only enter a table number between 1 and {maxTables}.
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const updated = await updateSettings({ maxTables: maxTablesInput });
+                        const next = parseInt(updated?.maxTables, 10);
+                        if (!Number.isNaN(next) && next > 0) setMaxTables(next);
+                        setToast('Settings updated successfully');
+                      } catch (err) {
+                        console.error(err);
+                        setToast(err?.message || 'Failed to update settings');
+                      }
+                    }}
+                    style={{ padding: '10px 24px', background: 'linear-gradient(135deg,#8B3A00,#2C1200)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
             </div>
           )}

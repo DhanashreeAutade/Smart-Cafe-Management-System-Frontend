@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import FormCard from '../components/FormCard';
@@ -14,6 +14,12 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setError('');
+  }, []);
 
   const handleSubmit = async () => {
     try {
@@ -51,6 +57,7 @@ export default function Login() {
           value={email}
           onChange={setEmail}
           type="email"
+          autoComplete="off"
         />
 
         <FormField
@@ -60,6 +67,7 @@ export default function Login() {
           value={password}
           onChange={setPassword}
           type="password"
+          autoComplete="new-password"
         />
 
         {/*  ADD THIS BLOCK HERE */}
