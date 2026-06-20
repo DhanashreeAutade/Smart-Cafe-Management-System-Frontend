@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LogoCircle from '../components/LogoCircle';
 import { connectSocket, subscribeSocket } from '../services/socket';
-import { getTodayOrders, updateOrderStatus } from '../services/api';
+import { getTodayOrders, updateOrderStatus, getOrderStats } from '../services/api';
 import { playNotificationSound } from '../services/sound';
 import { toast } from 'react-toastify';
 
@@ -65,6 +65,27 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [totalRevenue, setTotalRevenue] = useState(0);
+
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const stats = await getOrderStats();
+
+        const revenue = stats.reduce(
+          (sum, item) => sum + Number(item.totalAmount || 0),
+          0
+        );
+
+        setTotalRevenue(revenue);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadStats();
+  }, []);
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -126,10 +147,10 @@ export default function AdminOrders() {
           getOrderId(o) === orderId ? mergeOrderUpdate(o, updated) : o
         )));
       }
-      //toast.success(`Order #${getOrderNumber(order)} marked ${nextStatus}`);
-      console.log("Before toast");
-      toast("Status Updated");
-      console.log("After toast");
+      toast.success(`Order #${getOrderNumber(order)} marked ${nextStatus}`);
+      // console.log("Before toast");
+      // toast("Status Updated");
+      // console.log("After toast");
     } catch (err) {
       console.error('Update order status failed:', err);
       toast.error('Failed to update order status');
@@ -138,6 +159,21 @@ export default function AdminOrders() {
       )));
     }
   };
+  const todayRevenue = orders.reduce(
+    (sum, order) =>
+      sum + Number(order.totalAmount || order.total || order.amount || 0),
+    0
+  );
+
+  const completedRevenue = orders
+    .filter(
+      (order) => String(order.status || '').toLowerCase() === 'completed'
+    )
+    .reduce(
+      (sum, order) =>
+        sum + Number(order.totalAmount || order.total || order.amount || 0),
+      0
+    );
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -167,6 +203,18 @@ export default function AdminOrders() {
           <div style={{ background: '#fff', border: '1px solid #E8E0D5', borderRadius: 12, padding: '1.2rem' }}>
             <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>Orders Today</div>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, color: '#2C1200', fontWeight: 700 }}>{orders.length}</div>
+          </div>
+
+          {/* Today's Revenue */}
+          <div style={{ background: '#fff', border: '1px solid #E8E0D5', borderRadius: 12, padding: '1.2rem' }}>
+            <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>Today's Revenue</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, color: '#2C1200', fontWeight: 700 }}>₹{todayRevenue}
+            </div>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #E8E0D5', borderRadius: 12, padding: '1.2rem' }}>
+            <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>Total Revenue</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, color: '#2C1200', fontWeight: 700 }}>₹{totalRevenue}
+            </div>
           </div>
           <div style={{ background: '#fff', border: '1px solid #E8E0D5', borderRadius: 12, padding: '1.2rem' }}>
             <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>Latest Order</div>

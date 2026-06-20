@@ -227,7 +227,7 @@ export default function Menu() {
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [showCart, setShowCart] = useState(false);
-  const [toast, setToast] = useState('');
+  //const [toast, setToast] = useState('');
 
   const getCategoryLabel = (cat) => typeof cat === 'string' ? cat : cat?.name || cat?.category || cat?._id || '';
   const getCategoryId = (cat) => typeof cat === 'string' ? cat : cat?._id || cat?.id || cat?.name || cat?.category || '';
@@ -272,12 +272,12 @@ export default function Menu() {
   const handleAdd = (item, qty) => {
     addToCart(item, qty);
     setSelectedItem(null);
-    setToast(`${item.name} added to order`);
+    toast.success(`${item.name} added to order`);
   };
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-      {toast && <Toast message={toast} onDone={() => setToast('')} />}
+      {/*{toast && <Toast message={toast} onDone={() => setToast('')} />}*/}
 
       {/* Topbar */}
       <div style={{ background: '#2C1200', padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>

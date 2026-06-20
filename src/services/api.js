@@ -303,3 +303,15 @@ export const updateSettings = async (settings) => {
   }
   return data.settings || data;
 };
+
+export const getOrderStats = async () => {
+  const response = await fetch(`${API}/orders/stats/summary`, {
+    method: 'GET',
+    headers: buildHeaders()
+  });
+  const data = await safeJson(response);
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch order stats');
+  }
+  return data.stats || data;
+};
