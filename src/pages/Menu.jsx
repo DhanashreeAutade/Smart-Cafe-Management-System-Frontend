@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import LogoCircle from '../components/LogoCircle';
 import { toast } from 'react-toastify';
 import { API, createOrder, getSettings } from '../services/api';
+import Chatbot from '../components/Chatbot';
 
 const getImageUrl = (image) => {
   if (!image) return '';
@@ -245,7 +246,7 @@ export default function Menu() {
     }
     return item.categoryId || item.categoryName || '';
   };
-  
+
 
   const selectCategory = (cat) => {
     setActiveCat({ id: getCategoryId(cat), name: getCategoryLabel(cat) });
@@ -402,6 +403,7 @@ export default function Menu() {
 
       {selectedItem && <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} onAdd={handleAdd} />}
       {showCart && <CartModal onClose={() => setShowCart(false)} />}
+      <Chatbot />
     </div>
   );
 }

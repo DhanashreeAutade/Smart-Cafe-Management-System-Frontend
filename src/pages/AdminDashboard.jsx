@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMenu } from '../context/MenuContext';
 import LogoCircle from '../components/LogoCircle';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { getUsers, deleteUserApi, deleteProduct, API as API_BASE, getSettings, updateSettings } from '../services/api';
 
 
@@ -24,7 +25,6 @@ export default function AdminDashboard() {
   const { logout } = useAuth();
   const { items = [], addItem, deleteItem, categories = [], createCategory, updateCategory, deleteCategory } = useMenu();
   const [tab, setTab] = useState('overview');
-  const [toast, setToast] = useState('');
   const [form, setForm] = useState({ name: '', categoryId: '', categoryName: 'Hot Coffee', price: '', emoji: '☕', description: '', tags: '', image: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '' });
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -112,11 +112,11 @@ export default function AdminDashboard() {
       const created = await addItem(newItem);
 
       if (!created) {
-        setToast("Product not created");
+        toast.error("Product not created");
         return;
       }
 
-      setToast(`${form.name} added successfully ✨`);
+      toast.success(`${form.name} added successfully ✨`);
 
       // reset form
       setForm({
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
 
     } catch (err) {
       console.error(err);
-      setToast("Error creating product");
+      toast.error("Error creating product");
     }
   };
 
@@ -144,10 +144,10 @@ export default function AdminDashboard() {
       // remove user from UI instantly
       setUsers(prev => prev.filter(u => u._id !== id));
 
-      setToast('Customer removed.');
+      toast.success('Customer removed.');
     } catch (err) {
       console.error(err);
-      setToast('Failed to delete user');
+      toast.error('Failed to delete user');
     }
   };
 
@@ -169,14 +169,14 @@ export default function AdminDashboard() {
           setToast('Category update failed');
           return;
         }
-        setToast('Category updated successfully');
+        toast.success('Category updated successfully');
       } else {
         const created = await createCategory({ name: categoryForm.name.trim() });
         if (!created) {
-          setToast('Category creation failed');
+          toast.error('Category creation failed');
           return;
         }
-        setToast('Category added successfully');
+        toast.success('Category added successfully');
       }
 
       setCategoryForm({ name: '' });
@@ -191,10 +191,10 @@ export default function AdminDashboard() {
     if (!window.confirm(`Remove category "${category.name}"?`)) return;
     try {
       await deleteCategory(category._id || category.id);
-      setToast('Category removed successfully');
+      toast.success('Category removed successfully');
     } catch (err) {
       console.error('Delete category error:', err);
-      setToast(err?.message || 'Failed to delete category');
+      toast.error(err?.message || 'Failed to delete category');
     }
   };
 
@@ -204,10 +204,10 @@ export default function AdminDashboard() {
     try {
       await deleteProduct(name);
       deleteItem(id);
-      setToast('Item removed from menu.');
+      toast.error('Item removed from menu.');
     } catch (err) {
       console.error("Delete product error:", err);
-      setToast('Failed to delete item from backend');
+      toast.error('Failed to delete item from backend');
     }
   };
 
@@ -224,7 +224,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {toast && <Toast message={toast} onDone={() => setToast('')} />}
 
       {/* Topbar */}
       <div style={{ background: '#2C1200', padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>

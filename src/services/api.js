@@ -121,7 +121,7 @@ export const deleteUserApi = async (id) => {
 };
 
 export const getCategories = async () => {
-  const res = await fetch(`${API}/categories/getcategories`, {
+  const res = await fetch(`${API}/categories/getcategories?limit=100`, {
     headers: buildHeaders()
   });
 
