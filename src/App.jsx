@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MenuProvider } from './context/MenuContext';
 import { CartProvider } from './context/CartContext';
@@ -81,6 +82,7 @@ export default function App() {
               draggable
               theme="dark"
             />
+            <Analytics />
           </CartProvider>
         </MenuProvider>
       </AuthProvider>
