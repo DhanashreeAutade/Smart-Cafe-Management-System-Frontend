@@ -1,5 +1,4 @@
-export const API = "http://localhost:6100";
-
+export const API = import.meta.env.VITE_API_URL;
 const safeJson = async (res) => {
   try {
     return await res.json();
@@ -84,7 +83,8 @@ export const loginUser = async (email, password) => {
 
 //  REGISTER
 export const registerUser = async (form) => {
-  const res = await fetch(`http://localhost:6100/users/createuser`, {
+  const res = await fetch(`${API}/users/createuser`, {
+    
     method: "POST",
     headers: {
       "Content-Type": "application/json"
